@@ -1,4 +1,4 @@
-install: bin/libNailgunTest.jnilib closure-compiler nailgun
+install: bin/libNailgunTest.jnilib closure-compiler
 
 bin/libNailgunTest.jnilib:
 	# cd bin && javac NailgunTest.java && gcc NailgunTest.c -shared -o libNailgunTest.jnilib -I/System/Library/Frameworks/JavaVM.framework/Headers/

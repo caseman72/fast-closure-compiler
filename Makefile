@@ -1,8 +1,9 @@
 install: bin/libNailgunTest.jnilib closure-compiler nailgun
 
 bin/libNailgunTest.jnilib:
-	cd bin && javac NailgunTest.java && gcc NailgunTest.c -shared -o libNailgunTest.jnilib -I/System/Library/Frameworks/JavaVM.framework/Headers/
-
+	# cd bin && javac NailgunTest.java && gcc NailgunTest.c -shared -o libNailgunTest.jnilib -I/System/Library/Frameworks/JavaVM.framework/Headers/
+	cd bin && javac NailgunTest.java && gcc -fPIC NailgunTest.c -shared -o libNailgunTest.jnilib -I/usr/java/jdk1.7.0_25/include/ -I/usr/java/jdk1.7.0_25/include/linux/
+	
 closure-compiler:
 	rm -fr temp
 	mkdir temp

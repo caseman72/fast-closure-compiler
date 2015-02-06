@@ -53,3 +53,10 @@ Usage:
 * It is fast
 
 
+### MacOS
+
+* If you use tmux or screen ... you may get into an issue with nohup to fix install
+ * brew install reattach-to-user-namespace
+* refs:
+ * http://article.gmane.org/gmane.comp.terminal-emulators.tmux.user/4451
+ * https://github.com/ChrisJohnsen/tmux-MacOSX-pasteboard

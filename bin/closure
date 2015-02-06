@@ -24,7 +24,11 @@ server = [
 ]
 
 # Start the server if it's not already running
-if subprocess.check_output(['ps', 'x']).find(' '.join(server)) < 0:
+#if subprocess.check_output(['ps', 'x']).find(' '.join(server)) < 0:
+#  subprocess.Popen(['nohup'] + server, stdout=dev_null, stderr=dev_null)
+
+output = subprocess.Popen(['ps', 'x'], stdout=subprocess.PIPE).communicate()[0]
+if output.find(' '.join(server)) < 0:
   subprocess.Popen(['nohup'] + server, stdout=dev_null, stderr=dev_null)
 
 # Wait for the server to start up, then run the compiler

@@ -35,6 +35,9 @@ if not os.path.isdir(output_dir):
 # get the package directory
 dir = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 
+# ostype for version of ng
+ostype = re.sub(r'[^a-z0-9]+', '', os.getenv('OSTYPE', 'linux').lower());
+
 # the command for the server that should show up in the process list
 server = [
   'java',
@@ -54,9 +57,14 @@ output = filter(lambda x: ' '.join(server) == x, output)
 
 # start the server if it's not already running
 if len(output) == 0:
-  subprocess.Popen(['nohup'] + server, stdout=dev_null, stderr=dev_null)
+  # fix for nohup and tmux
+  nohup = subprocess.Popen(['which', 'reattach-to-user-namespace'], stdout=subprocess.PIPE).communicate()[0].split('\n')
+  nohup = filter(lambda x: len(x) > 0, nohup) + ['nohup']
+
+  subprocess.Popen(nohup + server, stdout=dev_null, stderr=dev_null)
   time.sleep(2)
 
+# regex for files
 re_min = re.compile(r'\.min\.')
 re_js = re.compile(r'\.js$')
 re_css = re.compile(r'\.css$')
@@ -78,7 +86,7 @@ elif re_js.search(source_file) is not None:
   ]
 
   # forward the exit code from the compiler
-  exit_code = subprocess.call([dir + '/nailgun/ng', 'com.google.javascript.jscomp.CommandLineRunner'] + compiler)
+  exit_code = subprocess.call(['{0}/nailgun/{1}/ng'.format(dir, ostype), 'com.google.javascript.jscomp.CommandLineRunner'] + compiler)
 
   # all is well
   if exit_code == 0:
@@ -104,7 +112,7 @@ elif re_css.search(source_file) is not None:
   ]
 
   # forward the exit code from the compiler
-  exit_code = subprocess.call([dir + '/nailgun/ng', 'com.yahoo.platform.yui.compressor.Bootstrap'] + compiler)
+  exit_code = subprocess.call(['{0}/nailgun/{1}/ng'.format(dir, ostype), 'com.yahoo.platform.yui.compressor.Bootstrap'] + compiler)
 
   # syntax error
   if exit_code != 0:

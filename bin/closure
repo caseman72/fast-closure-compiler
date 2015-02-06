@@ -1,5 +1,6 @@
 #!/usr/bin/env python
-
+#
+import re
 import os
 import sys
 import time
@@ -15,18 +16,18 @@ if len(argv) != 2:
   sys.exit(1)
 
 # files
-js = os.path.realpath(sys.argv[1])
-js_output_file = os.path.realpath(sys.argv[2])
-js_output_dir = os.path.dirname(js_output_file)
+source_file = os.path.realpath(sys.argv[1])
+output_file = os.path.realpath(sys.argv[2])
+output_dir = os.path.dirname(output_file)
 
 # check for source file
-if not os.path.isfile(js):
+if not os.path.isfile(source_file):
   sys.stderr.write('Usage: {0} <source file> <min destination>\n'.format(app))
   sys.stderr.write('Error: <source file> does not exist!\n')
   sys.exit(1)
 
 # check for destination directory
-if not os.path.isdir(js_output_dir):
+if not os.path.isdir(output_dir):
   sys.stderr.write('Usage: {0} <source file> <min-destination>\n'.format(app))
   sys.stderr.write('Error: <min destination> directory does not exist!\n')
   sys.exit(1)
@@ -39,7 +40,7 @@ server = [
   'java',
   '-server',
   '-cp',
-  '{0}/nailgun/nailgun.jar:{0}/closure-compiler/compiler.jar'.format(dir),
+  '{0}/nailgun/nailgun.jar:{0}/closure-compiler/compiler.jar:{0}/yui-compressor/yuicompressor.jar'.format(dir),
   'com.martiansoftware.nailgun.NGServer'
 ]
 
@@ -56,29 +57,60 @@ if len(output) == 0:
   subprocess.Popen(['nohup'] + server, stdout=dev_null, stderr=dev_null)
   time.sleep(2)
 
-# compiler options
-compiler = [
-  '--compilation_level', 'SIMPLE_OPTIMIZATIONS',
-  '--language_in', 'ECMASCRIPT5',
-  '--warning_level', 'QUIET',
+re_min = re.compile(r'\.min\.')
+re_js = re.compile(r'\.js$')
+re_css = re.compile(r'\.css$')
+
+# check for min version - copy only
+if re_min.search(source_file) is not None:
+  subprocess.call(['cp', '-f', source_file, output_file], stdout=dev_null, stderr=dev_null)
+
+# check for js
+elif re_js.search(source_file) is not None:
+  # compiler options
+  compiler = [
+    '--compilation_level', 'SIMPLE_OPTIMIZATIONS',
+    '--language_in', 'ECMASCRIPT5',
+    '--warning_level', 'QUIET',
 #  '--formatting', 'PRETTY_PRINT',
-  '--js', js,
-  '--js_output_file', js_output_file
-]
+    '--js', source_file,
+    '--js_output_file', output_file
+  ]
 
-# forward the exit code from the compiler
-exit_code = subprocess.call([dir + '/nailgun/ng', 'com.google.javascript.jscomp.CommandLineRunner'] + compiler)
+  # forward the exit code from the compiler
+  exit_code = subprocess.call([dir + '/nailgun/ng', 'com.google.javascript.jscomp.CommandLineRunner'] + compiler)
 
-# all is well
-if exit_code == 0:
-  if len(filter(lambda x: 'PRETTY_PRINT' == x, compiler)):
-    # with PRETTY_PRINT ~ change 2 spaces to tabs, remove traling white space
-    subprocess.call(['sed', '-i', '""', '-e', ':l', '-e', 's/^\\(\\t\\)*[ ][ ]/\\1\\t/g', '-e', 'tl', '-e', ':a', '-e', '/^\\n*$/{$d;N;ba', '-e', '}', js_output_file], stdout=dev_null, stderr=dev_null)
+  # all is well
+  if exit_code == 0:
+    if len(filter(lambda x: 'PRETTY_PRINT' == x, compiler)):
+      # with PRETTY_PRINT ~ change 2 spaces to tabs, remove traling white space
+      subprocess.call(['sed', '-i', '""', '-e', ':l', '-e', 's/^\\(\\t\\)*[ ][ ]/\\1\\t/g', '-e', 'tl', '-e', ':a', '-e', '/^\\n*$/{$d;N;ba', '-e', '}', output_file], stdout=dev_null, stderr=dev_null)
 
-# syntax error
-else:
-  subprocess.call(['cp', '-f', js, js_output_file], stdout=dev_null, stderr=dev_null)
+  # syntax error
+  else:
+    subprocess.call(['cp', '-f', source_file, output_file], stdout=dev_null, stderr=dev_null)
 
-# quit same as compiler
-sys.exit(exit_code)
+  # quit same as compiler
+  sys.exit(exit_code)
+
+# check for css
+elif re_css.search(source_file) is not None:
+  # compiler options
+  compiler = [
+    '--type', 'css',
+    '--preserve-semi',
+    '--line-break', '0',
+    '-o', output_file,
+    source_file
+  ]
+
+  # forward the exit code from the compiler
+  exit_code = subprocess.call([dir + '/nailgun/ng', 'com.yahoo.platform.yui.compressor.Bootstrap'] + compiler)
+
+  # syntax error
+  if exit_code != 0:
+    subprocess.call(['cp', '-f', source_file, output_file], stdout=dev_null, stderr=dev_null)
+
+  # quit same as compiler
+  sys.exit(exit_code)
 

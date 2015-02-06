@@ -15,10 +15,10 @@ closure-compiler:
 	rm -fr temp
 
 nailgun:
-	#rm -fr temp
+	rm -fr temp
 	#svn co http://nailgun.svn.sourceforge.net/svnroot/nailgun/trunk@21 temp && cd temp/nailgun && ant
-	#svn co http://svn.code.sf.net/p/nailgun/code/trunk@21 temp && cd temp/nailgun && ant
+	svn co http://svn.code.sf.net/p/nailgun/code/trunk@21 temp && cd temp/nailgun && ant
 	mkdir nailgun
-	#mv temp/nailgun/dist/nailgun-0.7.1.jar nailgun/nailgun.jar
-	cp /usr/local/bin/ng nailgun/ng
-	#rm -fr temp
+	mv temp/nailgun/dist/nailgun-0.7.1.jar nailgun/nailgun.jar
+	#cp /usr/local/bin/ng nailgun/ng
+	rm -fr temp

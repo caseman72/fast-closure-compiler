@@ -1,4 +1,3 @@
-/bin/libNailgunTest.jnilib
-/bin/NailgunTest.class
-/closure-compiler/
-/nailgun/
+
+.rcs
+*.swp

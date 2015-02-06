@@ -5,41 +5,80 @@ import sys
 import time
 import subprocess
 
-# Use /dev/null to ignore output
-dev_null = open('/dev/null', 'w')
+# args
+app = sys.argv[0]
+argv = sys.argv[1:]
 
-# Get the package directory (OS X doesn't have readlink or realpath)
-dir = os.path.dirname(os.path.realpath(__file__)) + '/..'
+# check for src dest in args (only)
+if len(argv) != 2:
+  sys.stderr.write('Usage: {0} <source file> <min destination>\n'.format(app))
+  sys.exit(1)
 
-# The command for the server that should show up in the process list
+# files
+js = os.path.realpath(sys.argv[1])
+js_output_file = os.path.realpath(sys.argv[2])
+js_output_dir = os.path.dirname(js_output_file)
+
+# check for source file
+if not os.path.isfile(js):
+  sys.stderr.write('Usage: {0} <source file> <min destination>\n'.format(app))
+  sys.stderr.write('Error: <source file> does not exist!\n')
+  sys.exit(1)
+
+# check for destination directory
+if not os.path.isdir(js_output_dir):
+  sys.stderr.write('Usage: {0} <source file> <min-destination>\n'.format(app))
+  sys.stderr.write('Error: <min destination> directory does not exist!\n')
+  sys.exit(1)
+
+# get the package directory
+dir = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
+
+# the command for the server that should show up in the process list
 server = [
   'java',
   '-server',
-  '-Djava.library.path=' + dir + '/bin',
   '-cp',
-  dir + '/nailgun/nailgun.jar:' +
-  dir + '/closure-compiler/compiler.jar:' +
-  dir + '/bin',
+  '{0}/nailgun/nailgun.jar:{0}/closure-compiler/compiler.jar'.format(dir),
   'com.martiansoftware.nailgun.NGServer'
 ]
 
-# Start the server if it's not already running
-#if subprocess.check_output(['ps', 'x']).find(' '.join(server)) < 0:
-#  subprocess.Popen(['nohup'] + server, stdout=dev_null, stderr=dev_null)
+# open dev-null to quiet processes
+dev_null = open('/dev/null', 'w')
 
-output = subprocess.Popen(['ps', 'x'], stdout=subprocess.PIPE).communicate()[0]
-if output.find(' '.join(server)) < 0:
+# need to see if server is running
+output = subprocess.Popen(['ps', 'x', '-o', 'command'], stdout=subprocess.PIPE).communicate()[0].split('\n')
+output = filter(lambda x: 'java' in x, output)
+output = filter(lambda x: ' '.join(server) == x, output)
+
+# start the server if it's not already running
+if len(output) == 0:
   subprocess.Popen(['nohup'] + server, stdout=dev_null, stderr=dev_null)
+  time.sleep(2)
 
-# Wait for the server to start up, then run the compiler
-for i in range(10):
-  # Try to set the current directory
-  if subprocess.call([dir + '/nailgun/ng', 'NailgunTest', os.getcwd()], stdout=dev_null, stderr=dev_null):
-    # Not ready yet
-    time.sleep(1)
-  else:
-    # Forward the exit code from the compiler
-    sys.exit(subprocess.call([dir + '/nailgun/ng', 'com.google.javascript.jscomp.CommandLineRunner'] + sys.argv[1:]))
+# compiler options
+compiler = [
+  '--compilation_level', 'SIMPLE_OPTIMIZATIONS',
+  '--language_in', 'ECMASCRIPT5',
+  '--warning_level', 'QUIET',
+#  '--formatting', 'PRETTY_PRINT',
+  '--js', js,
+  '--js_output_file', js_output_file
+]
 
-sys.stderr.write('error: could not connect to the nailgun server, giving up\n')
-sys.exit(1)
+# forward the exit code from the compiler
+exit_code = subprocess.call([dir + '/nailgun/ng', 'com.google.javascript.jscomp.CommandLineRunner'] + compiler)
+
+# all is well
+if exit_code == 0:
+  if len(filter(lambda x: 'PRETTY_PRINT' == x, compiler)):
+    # with PRETTY_PRINT ~ change 2 spaces to tabs, remove traling white space
+    subprocess.call(['sed', '-i', '""', '-e', ':l', '-e', 's/^\\(\\t\\)*[ ][ ]/\\1\\t/g', '-e', 'tl', '-e', ':a', '-e', '/^\\n*$/{$d;N;ba', '-e', '}', js_output_file], stdout=dev_null, stderr=dev_null)
+
+# syntax error
+else:
+  subprocess.call(['cp', '-f', js, js_output_file], stdout=dev_null, stderr=dev_null)
+
+# quit same as compiler
+sys.exit(exit_code)
+

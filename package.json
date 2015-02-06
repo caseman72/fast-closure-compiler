@@ -4,6 +4,6 @@
   "preferGlobal": "true",
   "version": "0.0.1",
   "bin": { "closure": "bin/closure" },
-  "scripts": { "install": "make install" },
+  "scripts": { },
   "license": "MIT"
 }

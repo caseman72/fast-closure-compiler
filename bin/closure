@@ -98,7 +98,6 @@ elif re_css.search(source_file) is not None:
   # compiler options
   compiler = [
     '--type', 'css',
-    '--preserve-semi',
     '--line-break', '0',
     '-o', output_file,
     source_file

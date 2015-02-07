@@ -38,30 +38,23 @@ dir = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 # ostype for version of ng ~ auto compiled for mac/linux
 ostype = re.sub(r'[^a-z0-9]+', '', os.getenv('OSTYPE', 'linux').lower());
 
-# the command for the server that should show up in the process list
-server = [
-  'java',
-  '-server',
-  '-cp',
-  '{0}/nailgun/nailgun.jar:{0}/closure-compiler/compiler.jar:{0}/yui-compressor/yuicompressor.jar'.format(dir),
-  'com.martiansoftware.nailgun.NGServer'
-]
-
 # open dev-null to quiet processes
 dev_null = open('/dev/null', 'w')
 
-# need to see if server is running using ps
-output = subprocess.Popen(['ps', 'x', '-o', 'command'], stdout=subprocess.PIPE).communicate()[0].split('\n')
-output = filter(lambda x: 'java' in x, output)
-output = filter(lambda x: ' '.join(server) == x, output)
-
 # start the server if it's not already running
-if len(output) == 0:
+if subprocess.call(['{0}/nailgun/{1}/ng'.format(dir, ostype), 'ng-stats'], stdout=dev_null, stderr=dev_null) != 0:
   # fix for nohup and tmux
-  nohup = subprocess.Popen(['which', 'reattach-to-user-namespace'], stdout=subprocess.PIPE).communicate()[0].split('\n')
-  nohup = filter(lambda x: len(x) > 0, nohup) + ['nohup']
-
-  subprocess.Popen(nohup + server, stdout=dev_null, stderr=dev_null)
+  server = subprocess.Popen(['which', 'reattach-to-user-namespace'], stdout=subprocess.PIPE).communicate()[0].split('\n')
+  server = filter(lambda x: len(x) > 0, server)
+  server = server + [
+    'nohup',
+    'java',
+    '-server',
+    '-cp',
+    '{0}/nailgun/nailgun.jar:{0}/closure-compiler/compiler.jar:{0}/yui-compressor/yuicompressor.jar'.format(dir),
+    'com.martiansoftware.nailgun.NGServer'
+  ]
+  subprocess.Popen(server, stdout=dev_null, stderr=dev_null)
 
   # loop until ng ng-stats works
   for i in range(10):

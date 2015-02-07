@@ -47,7 +47,7 @@ dev_null = open('/dev/null', 'w')
 # start the server if it's not already running
 if subprocess.call([ng_app, 'ng-stats'], stdout=dev_null, stderr=dev_null) != 0:
   # fix for nohup and tmux/screen ~ brew install reattach-to-user-namespace
-  server = subprocess.Popen(['which', 'reattach-to-user-namespace'], stdout=subprocess.PIPE).communicate()[0].split('\n')
+  server = subprocess.Popen(['which', 'reattach-to-user-namespace'], stdout=subprocess.PIPE, stderr=dev_null).communicate()[0].split('\n')
   server = filter(lambda x: len(x) > 0, server)
   server = server + [
     'nohup',
@@ -102,7 +102,7 @@ elif re_js.search(source_file) is not None:
   else:
     # but fix the PRETTY_PRINT if set set ~ off by default
     if len(filter(lambda x: 'PRETTY_PRINT' == x, compiler)) > 0:
-      sed = subprocess.Popen(['which', 'sed'], stdout=subprocess.PIPE).communicate()[0].split('\n')
+      sed = subprocess.Popen(['which', 'sed'], stdout=subprocess.PIPE, stderr=dev_null).communicate()[0].split('\n')
       sed = filter(lambda x: len(x) > 0, sed)
       sed = sed + [
         '-i', '""', # this fixes mac version

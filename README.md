@@ -5,7 +5,7 @@ using [Nailgun](http://www.martiansoftware.com/nailgun/), which runs a single ja
 
 Installation:
 
-    npm install -g git+https://github.com/caseman72/fast-closure-compiler.git#trulia
+    npm install -g git+https://github.com/caseman72/fast-closure-compiler.git
 
 Usage:
 

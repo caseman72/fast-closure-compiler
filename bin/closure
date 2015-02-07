@@ -86,7 +86,7 @@ elif re_js.search(source_file) is not None:
     '--compilation_level', 'SIMPLE_OPTIMIZATIONS',
     '--language_in', 'ECMASCRIPT5',
     '--warning_level', 'QUIET',
-#   '--formatting', 'PRETTY_PRINT',
+    '--formatting', 'PRETTY_PRINT',
     '--js', source_file,
     '--js_output_file', output_file
   ]
@@ -104,8 +104,19 @@ elif re_js.search(source_file) is not None:
     if len(filter(lambda x: 'PRETTY_PRINT' == x, compiler)) > 0:
       sed = subprocess.Popen(['which', 'sed'], stdout=subprocess.PIPE, stderr=dev_null).communicate()[0].split('\n')
       sed = filter(lambda x: len(x) > 0, sed)
+
+      # macos has a weird version of sed
+      mac_sed = 0
+      if ostype == 'darwin':
+        mac_sed = subprocess.call(sed + ['--version'], stdout=dev_null, stderr=dev_null) # 1 = mac, 0 = gnu
+
+      # this is the extension option ~ blank is replace in place but mac/bsd needs a zero length string
+      sed = sed + ['-i']
+      if mac_sed != 0:
+        sed = sed + ['']
+
+      # replace (recursively) ^spacex2 with tabs and remove trailing space
       sed = sed + [
-        '-i', '""', # this fixes mac version
         '-e', ':l',
         '-e', r's/^\({0}\)*[ ][ ]/\1{0}/g'.format('\t'), # trick to get tab in string
         '-e', 'tl',

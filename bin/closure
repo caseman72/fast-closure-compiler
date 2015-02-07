@@ -86,7 +86,7 @@ elif re_js.search(source_file) is not None:
     '--compilation_level', 'SIMPLE_OPTIMIZATIONS',
     '--language_in', 'ECMASCRIPT5',
     '--warning_level', 'QUIET',
-    '--formatting', 'PRETTY_PRINT',
+#   '--formatting', 'PRETTY_PRINT',
     '--js', source_file,
     '--js_output_file', output_file
   ]

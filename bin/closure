@@ -10,12 +10,12 @@ import subprocess
 app = sys.argv[0]
 argv = sys.argv[1:]
 
-# check for src dest in args (only)
+# check for 2 (src dest) args
 if len(argv) != 2:
   sys.stderr.write('Usage: {0} <source file> <min destination>\n'.format(app))
   sys.exit(1)
 
-# files
+# src + dest + dest path
 source_file = os.path.realpath(sys.argv[1])
 output_file = os.path.realpath(sys.argv[2])
 output_dir = os.path.dirname(output_file)
@@ -26,16 +26,16 @@ if not os.path.isfile(source_file):
   sys.stderr.write('Error: <source file> does not exist!\n')
   sys.exit(1)
 
-# check for destination directory
+# check for destination directory existance
 if not os.path.isdir(output_dir):
   sys.stderr.write('Usage: {0} <source file> <min-destination>\n'.format(app))
   sys.stderr.write('Error: <min destination> directory does not exist!\n')
   sys.exit(1)
 
-# get the package directory
+# get the package directory (../..)
 dir = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 
-# ostype for version of ng
+# ostype for version of ng ~ auto compiled for mac/linux
 ostype = re.sub(r'[^a-z0-9]+', '', os.getenv('OSTYPE', 'linux').lower());
 
 # the command for the server that should show up in the process list
@@ -50,7 +50,7 @@ server = [
 # open dev-null to quiet processes
 dev_null = open('/dev/null', 'w')
 
-# need to see if server is running
+# need to see if server is running using ps
 output = subprocess.Popen(['ps', 'x', '-o', 'command'], stdout=subprocess.PIPE).communicate()[0].split('\n')
 output = filter(lambda x: 'java' in x, output)
 output = filter(lambda x: ' '.join(server) == x, output)
@@ -62,16 +62,26 @@ if len(output) == 0:
   nohup = filter(lambda x: len(x) > 0, nohup) + ['nohup']
 
   subprocess.Popen(nohup + server, stdout=dev_null, stderr=dev_null)
-  time.sleep(2)
+
+  # loop until ng ng-stats works
+  for i in range(10):
+    time.sleep(1)
+
+    if subprocess.call(['{0}/nailgun/{1}/ng'.format(dir, ostype), 'ng-stats'], stdout=dev_null, stderr=dev_null) == 0:
+      break;
 
 # regex for files
 re_min = re.compile(r'\.min\.')
 re_js = re.compile(r'\.js$')
 re_css = re.compile(r'\.css$')
 
+# error if
+exit_code = 1
+
 # check for min version - copy only
 if re_min.search(source_file) is not None:
-  subprocess.call(['cp', '-f', source_file, output_file], stdout=dev_null, stderr=dev_null)
+  # no error unless copy fails
+  exit_code = subprocess.call(['cp', '-f', source_file, output_file], stdout=dev_null, stderr=dev_null)
 
 # check for js
 elif re_js.search(source_file) is not None:
@@ -88,18 +98,15 @@ elif re_js.search(source_file) is not None:
   # forward the exit code from the compiler
   exit_code = subprocess.call(['{0}/nailgun/{1}/ng'.format(dir, ostype), 'com.google.javascript.jscomp.CommandLineRunner'] + compiler)
 
-  # all is well
-  if exit_code == 0:
-    if len(filter(lambda x: 'PRETTY_PRINT' == x, compiler)):
-      # with PRETTY_PRINT ~ change 2 spaces to tabs, remove traling white space
-      subprocess.call(['sed', '-i', '""', '-e', ':l', '-e', 's/^\\(\\t\\)*[ ][ ]/\\1\\t/g', '-e', 'tl', '-e', ':a', '-e', '/^\\n*$/{$d;N;ba', '-e', '}', output_file], stdout=dev_null, stderr=dev_null)
-
   # syntax error
-  else:
+  if exit_code != 0:
     subprocess.call(['cp', '-f', source_file, output_file], stdout=dev_null, stderr=dev_null)
 
-  # quit same as compiler
-  sys.exit(exit_code)
+  # all is well
+  else:
+    if len(filter(lambda x: 'PRETTY_PRINT' == x, compiler)) > 0:
+      # with PRETTY_PRINT ~ change 2 spaces to tabs, remove traling white space
+      subprocess.call(['sed', '-i', '""', '-e', ':l', '-e', 's/^\\(\\t\\)*[ ][ ]/\\1\\t/g', '-e', 'tl', '-e', ':a', '-e', '/^\\n*$/{$d;N;ba', '-e', '}', output_file], stdout=dev_null, stderr=dev_null)
 
 # check for css
 elif re_css.search(source_file) is not None:
@@ -118,6 +125,5 @@ elif re_css.search(source_file) is not None:
   if exit_code != 0:
     subprocess.call(['cp', '-f', source_file, output_file], stdout=dev_null, stderr=dev_null)
 
-  # quit same as compiler
-  sys.exit(exit_code)
-
+# quit same as compiler
+sys.exit(exit_code)

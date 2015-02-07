@@ -38,17 +38,20 @@ dir = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 # ostype for version of ng ~ auto compiled for mac/linux
 ostype = re.sub(r'[^a-z0-9]+', '', os.getenv('OSTYPE', 'linux').lower());
 
+# command for ng
+ng_app = '{0}/nailgun/{1}/ng'.format(dir, ostype)
+
 # open dev-null to quiet processes
 dev_null = open('/dev/null', 'w')
 
 # start the server if it's not already running
-if subprocess.call(['{0}/nailgun/{1}/ng'.format(dir, ostype), 'ng-stats'], stdout=dev_null, stderr=dev_null) != 0:
-  # fix for nohup and tmux
+if subprocess.call([ng_app, 'ng-stats'], stdout=dev_null, stderr=dev_null) != 0:
+  # fix for nohup and tmux/screen ~ brew install reattach-to-user-namespace
   server = subprocess.Popen(['which', 'reattach-to-user-namespace'], stdout=subprocess.PIPE).communicate()[0].split('\n')
   server = filter(lambda x: len(x) > 0, server)
   server = server + [
     'nohup',
-    'java',
+    '/usr/bin/java',
     '-server',
     '-cp',
     '{0}/nailgun/nailgun.jar:{0}/closure-compiler/compiler.jar:{0}/yui-compressor/yuicompressor.jar'.format(dir),
@@ -60,7 +63,7 @@ if subprocess.call(['{0}/nailgun/{1}/ng'.format(dir, ostype), 'ng-stats'], stdou
   for i in range(10):
     time.sleep(1)
 
-    if subprocess.call(['{0}/nailgun/{1}/ng'.format(dir, ostype), 'ng-stats'], stdout=dev_null, stderr=dev_null) == 0:
+    if subprocess.call([ng_app, 'ng-stats'], stdout=dev_null, stderr=dev_null) == 0:
       break;
 
 # regex for files
@@ -83,13 +86,13 @@ elif re_js.search(source_file) is not None:
     '--compilation_level', 'SIMPLE_OPTIMIZATIONS',
     '--language_in', 'ECMASCRIPT5',
     '--warning_level', 'QUIET',
-#  '--formatting', 'PRETTY_PRINT',
+#   '--formatting', 'PRETTY_PRINT',
     '--js', source_file,
     '--js_output_file', output_file
   ]
 
   # forward the exit code from the compiler
-  exit_code = subprocess.call(['{0}/nailgun/{1}/ng'.format(dir, ostype), 'com.google.javascript.jscomp.CommandLineRunner'] + compiler)
+  exit_code = subprocess.call([ng_app, 'com.google.javascript.jscomp.CommandLineRunner'] + compiler)
 
   # syntax error
   if exit_code != 0:
@@ -97,9 +100,23 @@ elif re_js.search(source_file) is not None:
 
   # all is well
   else:
+    # but fix the PRETTY_PRINT if set set ~ off by default
     if len(filter(lambda x: 'PRETTY_PRINT' == x, compiler)) > 0:
+      sed = subprocess.Popen(['which', 'sed'], stdout=subprocess.PIPE).communicate()[0].split('\n')
+      sed = filter(lambda x: len(x) > 0, sed)
+      sed = sed + [
+        '-i', '""', # this fixes mac version
+        '-e', ':l',
+        '-e', r's/^\({0}\)*[ ][ ]/\1{0}/g'.format('\t'), # trick to get tab in string
+        '-e', 'tl',
+        '-e', ':a',
+        '-e', '/^\\n*$/{$d;N;ba',
+        '-e', '}',
+        output_file
+      ]
+
       # with PRETTY_PRINT ~ change 2 spaces to tabs, remove traling white space
-      subprocess.call(['sed', '-i', '""', '-e', ':l', '-e', 's/^\\(\\t\\)*[ ][ ]/\\1\\t/g', '-e', 'tl', '-e', ':a', '-e', '/^\\n*$/{$d;N;ba', '-e', '}', output_file], stdout=dev_null, stderr=dev_null)
+      subprocess.call(sed, stdout=dev_null, stderr=dev_null)
 
 # check for css
 elif re_css.search(source_file) is not None:
@@ -112,9 +129,9 @@ elif re_css.search(source_file) is not None:
   ]
 
   # forward the exit code from the compiler
-  exit_code = subprocess.call(['{0}/nailgun/{1}/ng'.format(dir, ostype), 'com.yahoo.platform.yui.compressor.Bootstrap'] + compiler)
+  exit_code = subprocess.call([ng_app, 'com.yahoo.platform.yui.compressor.Bootstrap'] + compiler)
 
-  # syntax error
+  # syntax error ~ not many on css files tho
   if exit_code != 0:
     subprocess.call(['cp', '-f', source_file, output_file], stdout=dev_null, stderr=dev_null)
 

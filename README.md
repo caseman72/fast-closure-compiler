@@ -44,12 +44,6 @@ Usage:
 
 ### Performance
 
-* I ran a script for all the consumer files (48 js files) ~ 1.1 seconds for all 48
- * time output = 0.976u 1.131s 0:07.21 29.1%
-
-* I ran a script for all the crm file (58 js file) ~ 1.5s for all of them the first time
- * time output = 1.151u 1.490s 0:08.86 29.7%
-
 * It is fast
 
 

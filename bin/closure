@@ -45,7 +45,7 @@ ng_app = '{0}/nailgun/{1}/ng'.format(dir, ostype)
 dev_null = open('/dev/null', 'w')
 
 # start the server if it's not already running
-if subprocess.call([ng_app, 'ng-stats'], stdout=dev_null, stderr=dev_null) != 0:
+if subprocess.call([ng_app, 'ng-version'], stdout=dev_null, stderr=dev_null) != 0:
   # fix for nohup and tmux/screen ~ brew install reattach-to-user-namespace
   server = subprocess.Popen(['which', 'reattach-to-user-namespace'], stdout=subprocess.PIPE, stderr=dev_null).communicate()[0].split('\n')
   server = filter(lambda x: len(x) > 0, server)
@@ -63,7 +63,7 @@ if subprocess.call([ng_app, 'ng-stats'], stdout=dev_null, stderr=dev_null) != 0:
   for i in range(10):
     time.sleep(1)
 
-    if subprocess.call([ng_app, 'ng-stats'], stdout=dev_null, stderr=dev_null) == 0:
+    if subprocess.call([ng_app, 'ng-version'], stdout=dev_null, stderr=dev_null) == 0:
       break;
 
 # regex for files

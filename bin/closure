@@ -32,6 +32,8 @@ if not os.path.isdir(output_dir):
   sys.stderr.write('Error: <min destination> directory does not exist!\n')
   sys.exit(1)
 
+# check permissions of output_file
+
 # get the package directory (../..)
 dir = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 
@@ -84,7 +86,7 @@ elif re_js.search(source_file) is not None:
   # compiler options
   compiler = [
     '--compilation_level', 'SIMPLE_OPTIMIZATIONS',
-    '--language_in', 'ECMASCRIPT5',
+#   '--language_in', 'ECMASCRIPT5',
     '--warning_level', 'QUIET',
 #   '--formatting', 'PRETTY_PRINT',
     '--js', source_file,
